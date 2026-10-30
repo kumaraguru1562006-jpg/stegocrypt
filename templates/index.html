@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StegoCrypt — Authenticated Cryptographic Steganography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #06b6d4;
+      --primary-hover: #0891b2;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --input-bg: rgba(15, 23, 42, 0.8);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 6px;
+      border-radius: var(--radius);
+      border: 1px solid var(--card-border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: rgba(6, 182, 212, 0.18);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+    }
+
+    /* Main Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 1.4rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #e2e8f0;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    /* Upload Dropzone */
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 1.8rem;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .preview-box {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .preview-thumb {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .preview-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .preview-meta strong {
+      color: #fff;
+    }
+
+    .capacity-tag {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--primary);
+      color: #0b0f19;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background: #22d3ee;
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+    }
+
+    /* Radio Group */
+    .radio-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .radio-card {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .radio-card.selected {
+      border-color: var(--primary);
+      background: rgba(6, 182, 212, 0.1);
+      color: #fff;
+    }
+
+    /* Result Box */
+    .result-box {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--card-border);
+      display: none;
+    }
+
+    .result-box.success {
+      display: block;
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(6, 78, 59, 0.2);
+    }
+
+    .result-box.error {
+      display: block;
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(127, 29, 29, 0.2);
+    }
+
+    .code-display {
+      background: #050811;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 10px 0;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: auto;
+      padding-top: 2rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-radius: 50%;
+      border-top-color: #0b0f19;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge-pill">🛡️ AES-256-GCM + LSB Steganography</div>
+      <h1>StegoCrypt Vault</h1>
+      <p class="subtitle">Conceal encrypted secrets inside lossless PNG images with authenticated tamper verification.</p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-hide')">
+        <span>🔒</span> Hide Secret
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-reveal')">
+        <span>🔓</span> Reveal Secret
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-cover')">
+        <span>🎨</span> Generate Cover
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-tamper')">
+        <span>⚠️</span> Tamper Test Lab
+      </button>
+    </div>
+
+    <!-- TAB 1: HIDE SECRET -->
+    <div id="tab-hide" class="card tab-panel active">
+      <form id="form-hide">
+        <div class="form-group">
+          <label>1. Select Cover PNG Image</label>
+          <div class="dropzone" id="dz-cover">
+            <input type="file" id="cover-file" accept="image/png,image/bmp" required>
+            <p>📁 Drag & drop a PNG cover image here or <strong>browse</strong></p>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Lossless PNG required (JPEG is not supported)</span>
+          </div>
+          <div id="cover-preview" class="preview-box" style="display: none;">
+            <img id="cover-thumb" class="preview-thumb" src="" alt="Thumbnail">
+            <div class="preview-meta">
+              <strong id="cover-name">image.png</strong><br>
+              <span id="cover-dims">800x600 px</span> • Max Capacity: <span id="cover-cap" class="capacity-tag">175 KB</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Choose Secret Payload Type</label>
+          <div class="radio-group">
+            <div class="radio-card selected" id="opt-text" onclick="setSecretType('text')">
+              <input type="radio" name="sec-type" checked style="display:none;">
+              <span>📝 Secret Message (Text)</span>
+            </div>
+            <div class="radio-card" id="opt-file" onclick="setSecretType('file')">
+              <input type="radio" name="sec-type" style="display:none;">
+              <span>📄 Secret File (PDF, ZIP, DOCX, etc.)</span>
+            </div>
+          </div>
+
+          <div id="box-sec-text">
+            <textarea id="sec-text" placeholder="Type your confidential secret message here..."></textarea>
+          </div>
+
+          <div id="box-sec-file" style="display: none;">
+            <div class="dropzone" style="padding: 1.2rem;">
+              <input type="file" id="sec-file">
+              <p>📎 Choose any confidential file to hide</p>
+              <span id="sec-file-name" style="font-size: 0.85rem; color: var(--primary);"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>3. Encryption Password</label>
+          <input type="password" id="hide-password" placeholder="Enter a strong passphrase..." required>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Key derived with PBKDF2-HMAC-SHA256 (600,000 iterations).</span>
+        </div>
+
+        <button type="submit" class="btn" id="btn-hide">
+          <span>🔒</span> Encrypt & Embed into Stego Image
+        </button>
+      </form>
+
+      <!-- Hide Result -->
+      <div id="result-hide" class="result-box"></div>
+    </div>
+
+    <!-- TAB 2: REVEAL SECRET -->
+    <div id="tab-reveal" class="card tab-panel">
+      <form id="form-reveal">
+        <div class="form-group">
+          <label>1. Select Stego PNG Image</label>
+          <div class="dropzone" id="dz-stego">
+            <input type="file" id="stego-file" accept="image/png" required>
+            <p>🔍 Drag & drop the Stego PNG image here or <strong>browse</strong></p>
+          </div>
+          <div id="stego-preview" class="preview-box" style="display: none;">
+            <img id="stego-thumb" class="preview-thumb" src="" alt="Stego Thumb">
+            <div class="preview-meta">
+              <strong id="stego-name">stego.png</strong><br>
+              <span id="stego-status" class="capacity-tag">Analyzing payload signature...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Decryption Password</label>
+          <input type="password" id="reveal-password" placeholder="Enter the password used during encryption..." required>
+        </div>
+
+        <button type="submit" class="btn" id="btn-reveal">
+          <span>🔓</span> Authenticate & Decrypt Secret
+        </button>
+      </form>
+
+      <!-- Reveal Result -->
+      <div id="result-reveal" class="result-box"></div>
+    </div>
+
+    <!-- TAB 3: GENERATE COVER -->
+    <div id="tab-cover" class="card tab-panel">
+      <p style="margin-bottom: 1.2rem; color: var(--text-muted);">
+        Don't have a clean PNG on hand? Generate an algorithmic gradient canvas formatted perfectly for steganography.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+        <div class="form-group">
+          <label>Art Style</label>
+          <select id="cover-style">
+            <option value="cyber">Cyberpunk Neon Wave</option>
+            <option value="cosmic">Cosmic Nebula (Purple/Deep Blue)</option>
+            <option value="emerald">Matrix Emerald Green</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Resolution</label>
+          <select id="cover-res">
+            <option value="800x600">800 x 600 (~175 KB Capacity)</option>
+            <option value="1280x720">1280 x 720 (~345 KB Capacity)</option>
+            <option value="1920x1080">1920 x 1080 (~777 KB Capacity)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn" onclick="generateCoverImage()">
+        <span>🎨</span> Download Generated Cover PNG
+      </button>
+    </div>
+
+    <!-- TAB 4: TAMPER TEST LAB -->
+    <div id="tab-tamper" class="card tab-panel">
+      <p style="margin-bottom: 1.2rem; color: var(--text-muted);">
+        <strong>Tamper-Resistance Demonstration:</strong> Upload an encrypted stego image, and this tool will artificially corrupt pixels in the ciphertext. Then attempt to decrypt it to verify how AES-GCM's authentication tag prevents bit-flipping attacks!
+      </p>
+
+      <form id="form-tamper">
+        <div class="form-group">
+          <label>Upload Valid Stego Image</label>
+          <input type="file" id="tamper-input-file" accept="image/png" required>
+        </div>
+        <button type="submit" class="btn btn-secondary" style="border: 1px solid var(--danger); color: #fca5a5;">
+          <span>⚠️</span> Artificially Corrupt Payload Pixels
+        </button>
+      </form>
+
+      <div id="result-tamper" class="result-box"></div>
+    </div>
+
+    <footer>
+      StegoCrypt Localhost Vault • Powered by AES-256-GCM (AEAD) & PBKDF2-HMAC-SHA256
+    </footer>
+  </div>
+
+  <script>
+    let activeSecretType = 'text';
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function setSecretType(type) {
+      activeSecretType = type;
+      if (type === 'text') {
+        document.getElementById('opt-text').classList.add('selected');
+        document.getElementById('opt-file').classList.remove('selected');
+        document.getElementById('box-sec-text').style.display = 'block';
+        document.getElementById('box-sec-file').style.display = 'none';
+      } else {
+        document.getElementById('opt-file').classList.add('selected');
+        document.getElementById('opt-text').classList.remove('selected');
+        document.getElementById('box-sec-file').style.display = 'block';
+        document.getElementById('box-sec-text').style.display = 'none';
+      }
+    }
+
+    // Inspect Cover Image
+    document.getElementById('cover-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const preview = document.getElementById('cover-preview');
+      const thumb = document.getElementById('cover-thumb');
+      const name = document.getElementById('cover-name');
+      const dims = document.getElementById('cover-dims');
+      const cap = document.getElementById('cover-cap');
+
+      name.textContent = file.name;
+      thumb.src = URL.createObjectURL(file);
+      preview.style.display = 'flex';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const res = await fetch('/api/info', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.capacity_bytes) {
+          dims.textContent = `${data.width} × ${data.height} px`;
+          cap.textContent = `${(data.capacity_bytes / 1024).toFixed(1)} KB`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Inspect Stego Image
+    document.getElementById('stego-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const preview = document.getElementById('stego-preview');
+      const thumb = document.getElementById('stego-thumb');
+      const name = document.getElementById('stego-name');
+      const status = document.getElementById('stego-status');
+
+      name.textContent = file.name;
+      thumb.src = URL.createObjectURL(file);
+      preview.style.display = 'flex';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const res = await fetch('/api/info', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.has_stego) {
+          status.innerHTML = `✅ StegoCrypt Signature Detected (${data.detected_length.toLocaleString()} bytes)`;
+          status.style.color = '#10b981';
+        } else {
+          status.innerHTML = `⚠️ No signature detected (Clean image or corrupted)`;
+          status.style.color = '#f59e0b';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Secret File label update
+    document.getElementById('sec-file').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        document.getElementById('sec-file-name').textContent = `Selected: ${e.target.files[0].name} (${(e.target.files[0].size / 1024).toFixed(1)} KB)`;
+      }
+    });
+
+    // Hide Form Submission
+    document.getElementById('form-hide').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-hide');
+      const resBox = document.getElementById('result-hide');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Encrypting with AES-256-GCM...`;
+      resBox.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('cover', document.getElementById('cover-file').files[0]);
+      formData.append('password', document.getElementById('hide-password').value);
+      formData.append('secret_type', activeSecretType);
+
+      if (activeSecretType === 'text') {
+        formData.append('secret_text', document.getElementById('sec-text').value);
+      } else {
+        formData.append('secret_file', document.getElementById('sec-file').files[0]);
+      }
+
+      try {
+        const res = await fetch('/api/hide', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          resBox.className = 'result-box success';
+          resBox.innerHTML = `
+            <h3 style="color: #10b981; margin-bottom: 0.5rem;">🎉 Secret Encrypted & Embedded Successfully!</h3>
+            <p style="font-size: 0.9rem; color: #d1d5db; margin-bottom: 1rem;">
+              Embedded <strong>${data.embedded_bytes} bytes</strong> of AES-256-GCM ciphertext into the image LSBs.
+            </p>
+            <div style="text-align: center; margin-bottom: 1rem;">
+              <img src="${data.image_data_url}" style="max-height: 220px; border-radius: 8px; border: 1px solid var(--card-border);">
+            </div>
+            <a href="${data.image_data_url}" download="stego_vault.png" class="btn" style="text-decoration: none; text-align: center;">
+              📥 Download Stego Image (stego_vault.png)
+            </a>
+          `;
+        } else {
+          resBox.className = 'result-box error';
+          resBox.innerHTML = `<h3 style="color: #ef4444;">❌ Error</h3><p>${data.error || 'Failed to embed secret.'}</p>`;
+        }
+      } catch (err) {
+        resBox.className = 'result-box error';
+        resBox.innerHTML = `<h3 style="color: #ef4444;">❌ Network Error</h3><p>${err.message}</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🔒</span> Encrypt & Embed into Stego Image`;
+      }
+    });
+
+    // Reveal Form Submission
+    document.getElementById('form-reveal').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-reveal');
+      const resBox = document.getElementById('result-reveal');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Decrypting payload...`;
+      resBox.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('stego', document.getElementById('stego-file').files[0]);
+      formData.append('password', document.getElementById('reveal-password').value);
+
+      try {
+        const res = await fetch('/api/reveal', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          resBox.className = 'result-box success';
+          if (data.type === 'text') {
+            resBox.innerHTML = `
+              <h3 style="color: #10b981; margin-bottom: 0.5rem;">🔓 Authenticated Secret Decrypted</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">AES-256-GCM authentication tag verified.</p>
+              <div class="code-display">${escapeHtml(data.content)}</div>
+              <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('${escapeJs(data.content)}')">
+                📋 Copy Message to Clipboard
+              </button>
+            `;
+          } else {
+            const downloadUrl = `data:application/octet-stream;base64,${data.data_b64}`;
+            resBox.innerHTML = `
+              <h3 style="color: #10b981; margin-bottom: 0.5rem;">📎 Secret File Extracted Successfully</h3>
+              <p style="font-size: 0.9rem; color: #d1d5db; margin-bottom: 1rem;">
+                File: <strong>${escapeHtml(data.filename)}</strong> (${(data.size / 1024).toFixed(1)} KB)
+              </p>
+              <a href="${downloadUrl}" download="${escapeHtml(data.filename)}" class="btn" style="text-decoration: none; text-align: center;">
+                📥 Download Decrypted File
+              </a>
+            `;
+          }
+        } else {
+          resBox.className = 'result-box error';
+          resBox.innerHTML = `<h3 style="color: #ef4444;">❌ Authentication Failed</h3><p>${data.error || 'Decryption failed.'}</p>`;
+        }
+      } catch (err) {
+        resBox.className = 'result-box error';
+        resBox.innerHTML = `<h3 style="color: #ef4444;">❌ Network Error</h3><p>${err.message}</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>🔓</span> Authenticate & Decrypt Secret`;
+      }
+    });
+
+    // Generate Cover helper
+    function generateCoverImage() {
+      const style = document.getElementById('cover-style').value;
+      const res = document.getElementById('cover-res').value.split('x');
+      const w = res[0];
+      const h = res[1];
+      window.location.href = `/api/generate-cover?style=${style}&width=${w}&height=${h}`;
+    }
+
+    // Tamper Form Submission
+    document.getElementById('form-tamper').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const resBox = document.getElementById('result-tamper');
+      const fileInput = document.getElementById('tamper-input-file');
+      if (!fileInput.files[0]) return;
+
+      const formData = new FormData();
+      formData.append('stego', fileInput.files[0]);
+
+      try {
+        const res = await fetch('/api/tamper', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          resBox.className = 'result-box success';
+          resBox.innerHTML = `
+            <h3 style="color: #f59e0b; margin-bottom: 0.5rem;">⚠️ Corrupted Stego Image Generated</h3>
+            <p style="font-size: 0.9rem; color: #d1d5db; margin-bottom: 1rem;">
+              We intentionally modified a line of pixels inside the AES-GCM ciphertext region.
+            </p>
+            <div style="text-align: center; margin-bottom: 1rem;">
+              <img src="${data.image_data_url}" style="max-height: 200px; border-radius: 8px;">
+            </div>
+            <a href="${data.image_data_url}" download="corrupted_stego.png" class="btn btn-secondary" style="text-decoration: none; text-align: center;">
+              📥 Download Corrupted Stego Image
+            </a>
+            <p style="margin-top: 10px; font-size: 0.85rem; color: #9ca3af;">
+              👉 <em>Now upload this corrupted image to the <strong>Reveal Secret</strong> tab. Decryption will fail even with the 100% correct password!</em>
+            </p>
+          `;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeJs(text) {
+      return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    }
+  </script>
+</body>
+</html>
